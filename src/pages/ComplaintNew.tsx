@@ -13,9 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-import { MessageSquare, Upload } from "lucide-react";
+import { MessageSquare, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const ComplaintNew = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     department: "",
@@ -24,19 +31,102 @@ const ComplaintNew = () => {
     anonymous: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFile(selectedFile);
+    }
+  };
+
+  const removeFile = () => {
+    setFile(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Complaint Submitted",
-      description: "Your complaint has been successfully submitted for review.",
-    });
-    setFormData({
-      title: "",
-      department: "",
-      description: "",
-      priority: "",
-      anonymous: false,
-    });
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to submit a complaint",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      let documentUrl = null;
+
+      // Upload file if selected
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('complaint-documents')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('complaint-documents')
+          .getPublicUrl(uploadData.path);
+
+        documentUrl = publicUrl;
+      }
+
+      // Insert complaint into database
+      const { error: insertError } = await supabase
+        .from('complaints')
+        .insert({
+          citizen_id: user.id,
+          title: formData.title,
+          department: formData.department,
+          description: formData.description,
+          priority: formData.priority,
+          document_url: documentUrl,
+          status: 'pending',
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Complaint Submitted",
+        description: "Your complaint has been successfully submitted for review.",
+      });
+
+      // Reset form
+      setFormData({
+        title: "",
+        department: "",
+        description: "",
+        priority: "",
+        anonymous: false,
+      });
+      setFile(null);
+
+      // Navigate to complaint status page
+      navigate('/dashboard/complaint-status');
+    } catch (error) {
+      console.error("Error submitting complaint:", error);
+      toast({
+        title: "Submission failed",
+        description: "There was an error submitting your complaint. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -144,7 +234,17 @@ const ComplaintNew = () => {
               {/* File Upload */}
               <div className="space-y-2">
                 <Label htmlFor="files">Supporting Documents (Optional)</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  id="files"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                />
+                <label
+                  htmlFor="files"
+                  className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer block"
+                >
                   <Upload className="mx-auto text-muted-foreground mb-2" size={32} />
                   <p className="text-sm text-muted-foreground">
                     Click to upload or drag and drop
@@ -152,7 +252,27 @@ const ComplaintNew = () => {
                   <p className="text-xs text-muted-foreground mt-1">
                     PDF, images, or documents (max 10MB)
                   </p>
-                </div>
+                </label>
+                
+                {file && (
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Upload size={16} />
+                      <span className="text-sm">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFile}
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Anonymous */}
@@ -173,10 +293,15 @@ const ComplaintNew = () => {
 
               {/* Actions */}
               <div className="flex gap-4 pt-4">
-                <Button type="submit" className="flex-1">
-                  Submit Complaint
+                <Button type="submit" className="flex-1" disabled={submitting}>
+                  {submitting ? "Submitting..." : "Submit Complaint"}
                 </Button>
-                <Button type="button" variant="outline" className="flex-1">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="flex-1"
+                  disabled={submitting}
+                >
                   Save as Draft
                 </Button>
               </div>
