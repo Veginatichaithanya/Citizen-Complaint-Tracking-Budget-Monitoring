@@ -6,17 +6,26 @@ import WorkflowSection from "@/components/WorkflowSection";
 import ParallaxBanner from "@/components/ParallaxBanner";
 import FeaturesSection from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <AboutSection />
-      <UserRolesSection />
-      <WorkflowSection />
+      <ScrollReveal>
+        <AboutSection />
+      </ScrollReveal>
+      <ScrollReveal>
+        <UserRolesSection />
+      </ScrollReveal>
+      <ScrollReveal>
+        <WorkflowSection />
+      </ScrollReveal>
       <ParallaxBanner />
-      <FeaturesSection />
+      <ScrollReveal>
+        <FeaturesSection />
+      </ScrollReveal>
       <Footer />
     </div>
   );
