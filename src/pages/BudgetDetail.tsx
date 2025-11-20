@@ -128,10 +128,15 @@ const BudgetDetail = () => {
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="font-serif">Budget Document</CardTitle>
-              <Button className="w-full sm:w-auto">
-                <Download size={16} className="mr-2" />
-                Download PDF
-              </Button>
+              {budget.document_url && (
+                <Button 
+                  className="w-full sm:w-auto"
+                  onClick={() => window.open(budget.document_url!, '_blank')}
+                >
+                  <Download size={16} className="mr-2" />
+                  Download PDF
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
