@@ -38,6 +38,25 @@ const BudgetDetail = () => {
     }
   };
 
+  const handleDownload = async () => {
+    if (!budget?.document_url) return;
+    
+    try {
+      const response = await fetch(budget.document_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${budget.title.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout role="citizen">
@@ -131,7 +150,7 @@ const BudgetDetail = () => {
               {budget.document_url && (
                 <Button 
                   className="w-full sm:w-auto"
-                  onClick={() => window.open(budget.document_url!, '_blank')}
+                  onClick={handleDownload}
                 >
                   <Download size={16} className="mr-2" />
                   Download PDF
