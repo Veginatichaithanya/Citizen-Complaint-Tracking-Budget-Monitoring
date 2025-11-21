@@ -12,17 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { MessageSquare, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import ComplaintSuccessModal from "@/components/ComplaintSuccessModal";
 
 const ComplaintNew = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [complaintId, setComplaintId] = useState<string>("");
   const [formData, setFormData] = useState({
     title: "",
     department: "",
@@ -86,7 +87,7 @@ const ComplaintNew = () => {
       }
 
       // Insert complaint into database
-      const { error: insertError } = await supabase
+      const { data: complaintData, error: insertError } = await supabase
         .from('complaints')
         .insert({
           citizen_id: user.id,
@@ -96,14 +97,15 @@ const ComplaintNew = () => {
           priority: formData.priority,
           image_url: documentUrl,
           status: 'pending',
-        });
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
-      toast({
-        title: "Complaint Submitted",
-        description: "Your complaint has been successfully submitted for review.",
-      });
+      // Store complaint ID and show success modal
+      setComplaintId(complaintData?.id || "");
+      setShowSuccess(true);
 
       // Reset form
       setFormData({
@@ -114,9 +116,6 @@ const ComplaintNew = () => {
         anonymous: false,
       });
       setFile(null);
-
-      // Navigate to complaint status page
-      navigate('/dashboard/complaint-status');
     } catch (error) {
       console.error("Error submitting complaint:", error);
       toast({
@@ -130,8 +129,10 @@ const ComplaintNew = () => {
   };
 
   return (
-    <DashboardLayout role="citizen">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <>
+      <ComplaintSuccessModal isOpen={showSuccess} complaintId={complaintId} />
+      <DashboardLayout role="citizen">
+        <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/10 rounded-full">
@@ -309,6 +310,7 @@ const ComplaintNew = () => {
         </Card>
       </div>
     </DashboardLayout>
+    </>
   );
 };
 
