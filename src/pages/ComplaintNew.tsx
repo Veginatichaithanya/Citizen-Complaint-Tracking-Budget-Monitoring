@@ -94,7 +94,7 @@ const ComplaintNew = () => {
           department: formData.department,
           description: formData.description,
           priority: formData.priority,
-          document_url: documentUrl,
+          image_url: documentUrl,
           status: 'pending',
         });
 
