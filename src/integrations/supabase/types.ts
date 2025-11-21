@@ -53,11 +53,60 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_documents: {
+        Row: {
+          complaint_id: string
+          created_at: string | null
+          description: string | null
+          document_type: string
+          document_url: string
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string | null
+          description?: string | null
+          document_type: string
+          document_url: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string | null
+          description?: string | null
+          document_type?: string
+          document_url?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_documents_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_updates: {
         Row: {
           complaint_id: string | null
           created_at: string | null
           id: number
+          new_status: string | null
+          previous_status: string | null
           status: Database["public"]["Enums"]["complaint_status"] | null
           update_text: string
           updated_by: string | null
@@ -66,6 +115,8 @@ export type Database = {
           complaint_id?: string | null
           created_at?: string | null
           id?: number
+          new_status?: string | null
+          previous_status?: string | null
           status?: Database["public"]["Enums"]["complaint_status"] | null
           update_text: string
           updated_by?: string | null
@@ -74,6 +125,8 @@ export type Database = {
           complaint_id?: string | null
           created_at?: string | null
           id?: number
+          new_status?: string | null
+          previous_status?: string | null
           status?: Database["public"]["Enums"]["complaint_status"] | null
           update_text?: string
           updated_by?: string | null
@@ -97,37 +150,49 @@ export type Database = {
       }
       complaints: {
         Row: {
+          assigned_at: string | null
           assigned_authority_id: string | null
           citizen_id: string
           created_at: string
           department: string
           description: string
           id: string
+          image_url: string | null
+          location: string | null
           priority: string | null
+          resolved_at: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
+          assigned_at?: string | null
           assigned_authority_id?: string | null
           citizen_id: string
           created_at?: string
           department: string
           description: string
           id?: string
+          image_url?: string | null
+          location?: string | null
           priority?: string | null
+          resolved_at?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          assigned_at?: string | null
           assigned_authority_id?: string | null
           citizen_id?: string
           created_at?: string
           department?: string
           description?: string
           id?: string
+          image_url?: string | null
+          location?: string | null
           priority?: string | null
+          resolved_at?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -414,7 +479,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      complaint_statistics: {
+        Row: {
+          department: string | null
+          in_progress_complaints: number | null
+          pending_complaints: number | null
+          resolved_complaints: number | null
+          total_complaints: number | null
+          unassigned_complaints: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
